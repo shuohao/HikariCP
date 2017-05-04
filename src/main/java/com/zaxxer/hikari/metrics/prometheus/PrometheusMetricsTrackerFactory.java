@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013, 2014 Brett Wooldridge
+ * Copyright (C) 2016 Brett Wooldridge
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,12 @@
 
 package com.zaxxer.hikari.metrics.prometheus;
 
-import com.zaxxer.hikari.metrics.MetricsTracker;
+import com.zaxxer.hikari.metrics.IMetricsTracker;
 import com.zaxxer.hikari.metrics.MetricsTrackerFactory;
 import com.zaxxer.hikari.metrics.PoolStats;
+
+import io.prometheus.client.Collector;
+import io.prometheus.client.CollectorRegistry;
 
 /**
  * <pre>{@code
@@ -26,10 +29,23 @@ import com.zaxxer.hikari.metrics.PoolStats;
  * config.setMetricsTrackerFactory(new PrometheusMetricsTrackerFactory());
  * }</pre>
  */
-public class PrometheusMetricsTrackerFactory implements MetricsTrackerFactory {
+public class PrometheusMetricsTrackerFactory implements MetricsTrackerFactory
+{
+
+   private final CollectorRegistry registry;
+
+   public PrometheusMetricsTrackerFactory() {
+     this(CollectorRegistry.defaultRegistry);
+   }
+
+   public PrometheusMetricsTrackerFactory(CollectorRegistry registry) {
+      this.registry = registry;
+   }
+
    @Override
-   public MetricsTracker create(String poolName, PoolStats poolStats) {
-      new HikariCPCollector(poolName, poolStats).register();
-      return new PrometheusMetricsTracker(poolName);
+   public IMetricsTracker create(String poolName, PoolStats poolStats)
+   {
+      Collector collector = new HikariCPCollector(poolName, poolStats).register(registry);
+      return new PrometheusMetricsTracker(poolName, collector, registry);
    }
 }
